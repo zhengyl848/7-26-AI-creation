@@ -24,18 +24,16 @@ streamlit run xihu_map_app.py
 
 ## 环境配置
 
-首次配置时将 `xihu_map_app/.env.example` 复制为 `.env`（Windows 启动脚本会自动复制），然后编辑 `.env`，只需填入 DeepSeek 官方平台的密钥：
+打开项目自带的 `xihu_map_app/.env`，在等号后直接填入 DeepSeek 官方密钥：
 
 ```env
 DEEPSEEK_API_KEY=你的真实密钥
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-flash
-DEEPSEEK_TIMEOUT=120
 ```
 
+保存后启动或重启项目即可。无需复制模板，也无需填写地址、模型和超时。
+程序默认使用 `https://api.deepseek.com`、`deepseek-flash`，读取超时 120 秒。
 密钥申请：https://platform.deepseek.com/api_keys
-官方文档：https://api-docs.deepseek.com/zh-cn/
-没有密钥时会明确提示并回退本地资料。此前提供的百炼套餐密钥不能用于 DeepSeek 官方接口。
+未填密钥时会明确提示并使用本地文化资料。不要把填有真实密钥的文件上传到 GitHub。
 
 ## 文件结构
 
@@ -105,7 +103,7 @@ xihu_map_app/
 
 Windows 安装 Python 3.13 并加入 PATH 后，双击根目录 `start_xihu.cmd`。
 脚本在项目内创建虚拟环境，联网安装锁定依赖并启动服务。
-只需在 `.env` 填入 `DEEPSEEK_API_KEY`；地址、模型和超时已有默认值。
+直接在项目自带的 `.env` 中填入密钥即可；地址、模型和超时已有默认值。
 修改密钥后重启服务。系统环境变量优先于 `.env`。
 
 网络连接超时 10 秒，读取等待默认 120 秒，可通过 `DEEPSEEK_TIMEOUT` 修改。
