@@ -10,20 +10,16 @@ from pathlib import Path
 
 # 用脚本所在目录的绝对路径加载 .env，避免工作目录不一致
 _env_path = Path(__file__).parent / ".env"
-load_dotenv(_env_path, override=True)
+load_dotenv(_env_path, override=False)
 
-# ===== API 配置（纯 ASCII 清洗） =====
-def _clean_env(key, default=""):
-    val = os.getenv(key, default)
-    if val:
-        val = val.strip().strip('"').strip("'")
-        val = val.encode("ascii", errors="ignore").decode("ascii")
-    return val or default
+# ===== 文脉对话 API 配置 =====
+from chat_api import (ChatError, DEFAULT_BASE_URL, DEFAULT_MODEL,
+                      clean_value, valid_api_key, request_chat)
 
-DASHSCOPE_API_KEY = _clean_env("DASHSCOPE_API_KEY")
-DASHSCOPE_BASE_URL = _clean_env("DASHSCOPE_BASE_URL",
-    "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1")
-DASHSCOPE_MODEL = _clean_env("DASHSCOPE_MODEL", "deepseek-v4-flash")
+DEEPSEEK_API_KEY = clean_value(os.getenv("DEEPSEEK_API_KEY"))
+DEEPSEEK_BASE_URL = clean_value(os.getenv("DEEPSEEK_BASE_URL")) or DEFAULT_BASE_URL
+DEEPSEEK_MODEL = clean_value(os.getenv("DEEPSEEK_MODEL")) or DEFAULT_MODEL
+DEEPSEEK_TIMEOUT = os.getenv("DEEPSEEK_TIMEOUT", "120")
 
 # ===== 常量配置 =====
 IMAGES_DIR = "images"
@@ -182,62 +178,22 @@ def generate_ai_response(spot_name, user_query, culture_data):
         for rec in data['recommendations']:
             context_text += f"  - {rec}\n"
 
-    if not DASHSCOPE_API_KEY:
-        return _hardcoded_response(spot_name, user_query, data)
+    def fallback(reason):
+        return f"ℹ️ {reason}以下为本地文化资料，未生成在线 AI 回复。\n\n{_hardcoded_response(spot_name, user_query, data)}"
+
+    if not valid_api_key(DEEPSEEK_API_KEY):
+        return fallback("尚未配置有效的 DeepSeek API Key。")
 
     try:
-        import http.client
-        import ssl
-        from urllib.parse import urlparse
-
-        payload = {"model": DASHSCOPE_MODEL,
-                   "messages": [{"role": "system", "content": SYSTEM_PROMPT},
-                                {"role": "user", "content": f"景点背景：\n{context_text}\n\n用户问题：\n{user_query}"}],
-                   "temperature": 0.7, "max_tokens": 2000}
-
-        # 直接用 http.client，避免 requests/urllib3 的 header 编码问题
-        body_bytes = json.dumps(payload, ensure_ascii=True).encode("ascii")
-
-        parsed = urlparse(DASHSCOPE_BASE_URL)
-        host = parsed.hostname
-        port = parsed.port or 443
-        path = parsed.path + "/chat/completions"
-
-        ctx = ssl.create_default_context()
-        conn = http.client.HTTPSConnection(host, port, context=ctx, timeout=15)
-
-        # 所有 header 值确保是纯 ASCII
-        headers = {
-            "Authorization": "Bearer " + DASHSCOPE_API_KEY,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "XihuMap/1.0",
-        }
-        # 强制编码检查
-        safe_headers = {}
-        for k, v in headers.items():
-            safe_headers[k] = v.encode("ascii", errors="replace").decode("ascii")
-
-        conn.request("POST", path, body=body_bytes, headers=safe_headers)
-        resp = conn.getresponse()
-        resp_body = resp.read().decode("utf-8")
-
-        if resp.status != 200:
-            conn.close()
-            return f"API 错误 (HTTP {resp.status})。\n\n{_hardcoded_response(spot_name, user_query, data)}"
-
-        body = json.loads(resp_body)
-        conn.close()
-
-        msg = body["choices"][0]["message"]
-        content = msg.get("content", "")
-        if not content:
-            return f"模型思考超时，请重试。\n\n{_hardcoded_response(spot_name, user_query, data)}"
-        return content
-    except Exception as e:
-        import traceback
-        detail = traceback.format_exc()
-        return f"❌ 调用异常：{type(e).__name__}: {e}\n```\n{detail[-400:]}\n```\n\n{_hardcoded_response(spot_name, user_query, data)}"
+        return request_chat(
+            DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL, DEEPSEEK_TIMEOUT,
+            [{"role": "system", "content": SYSTEM_PROMPT},
+             {"role": "user", "content": f"景点背景：\n{context_text}\n\n用户问题：\n{user_query}"}],
+        )
+    except ChatError as error:
+        return fallback(str(error))
+    except Exception:
+        return fallback("AI 对话发生意外错误，请稍后重试。")
 
 
 def _hardcoded_response(spot_name, user_query, data):

@@ -4,7 +4,7 @@ AI 驱动的杭州文化遗产数字化平台 —— 清华大学无穹书院实
 
 ## 项目简介
 
-**西湖文脉图志**以西湖周边人文景点为切入点，构建了集**交互式地图可视化**、**AI 智能文化导览**、**多用户协同管理**于一体的数字人文工具。平台采用 Streamlit 全栈框架，接入 DeepSeek V4 大语言模型。
+**西湖文脉图志**以西湖周边人文景点为切入点，构建了集**交互式地图可视化**、**AI 智能文化导览**、**多用户协同管理**于一体的数字人文工具。平台采用 Streamlit 全栈框架，通过 DeepSeek 官方 API接入大语言模型。
 
 ## 快速开始
 
@@ -24,17 +24,18 @@ streamlit run xihu_map_app.py
 
 ## 环境配置
 
-编辑 `.env` 文件，将 `DASHSCOPE_API_KEY` 替换为你的真实 API 密钥：
+首次配置时将 `xihu_map_app/.env.example` 复制为 `.env`（Windows 启动脚本会自动复制），然后编辑 `.env`，只需填入 DeepSeek 官方平台的密钥：
 
 ```env
-DASHSCOPE_API_KEY = "在此填入你的 DashScope API 密钥"
-DASHSCOPE_BASE_URL = "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
-DASHSCOPE_MODEL = "deepseek-v4-flash"
+DEEPSEEK_API_KEY=你的真实密钥
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-flash
+DEEPSEEK_TIMEOUT=120
 ```
 
-> ⚠️ **必须补全密钥**：`.env` 中 `DASHSCOPE_API_KEY` 为占位符。可前往 [阿里云百炼平台](https://bailian.console.aliyun.com/) 申请 DashScope API Key。
->
-> 不配置密钥也可正常使用，AI 对话会自动回退到内置文化资料库。
+密钥申请：https://platform.deepseek.com/api_keys
+官方文档：https://api-docs.deepseek.com/zh-cn/
+没有密钥时会明确提示并回退本地资料。此前提供的百炼套餐密钥不能用于 DeepSeek 官方接口。
 
 ## 文件结构
 
@@ -61,7 +62,7 @@ xihu_map_app/
 
 ### 🤖 AI 文脉对话
 - 选择已添加的任一地点，与 AI 进行文化对话
-- 基于 DeepSeek V4 大模型，提供诗词鉴赏、历史解读、传说讲述等功能
+- 默认使用 deepseek-flash，模型可配置，提供诗词鉴赏、历史解读、传说讲述等功能
 - 内置 13 个经典景点（断桥残雪、苏堤、雷峰塔等）的结构化文化数据库
 - 支持快捷提问和自由输入，API 不可用时自动回退到本地资料
 
@@ -99,3 +100,17 @@ xihu_map_app/
 ## GitHub
 
 [https://github.com/zhengyl848/7-26-AI-creation](https://github.com/zhengyl848/7-26-AI-creation.git)
+
+## DeepSeek 直连版运行说明
+
+Windows 安装 Python 3.13 并加入 PATH 后，双击根目录 `start_xihu.cmd`。
+脚本在项目内创建虚拟环境，联网安装锁定依赖并启动服务。
+只需在 `.env` 填入 `DEEPSEEK_API_KEY`；地址、模型和超时已有默认值。
+修改密钥后重启服务。系统环境变量优先于 `.env`。
+
+网络连接超时 10 秒，读取等待默认 120 秒，可通过 `DEEPSEEK_TIMEOUT` 修改。
+无自动重试。密钥无效、余额不足（HTTP 402）、权限、限流、网络故障、空回复或畸形回复均安全回退本地资料。
+文脉对话仅使用 DeepSeek 配置，不再读取百炼的密钥和 endpoint。
+
+回归测试：在 `xihu_map_app` 目录执行 `../.venv/Scripts/python.exe -m unittest test_chat_api test_chat_ui -v`。
+未提供 DeepSeek 官方密钥，因此在线成功和失败路径通过模拟响应验证，尚未进行真实 DeepSeek 调用。
