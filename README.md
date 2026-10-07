@@ -28,9 +28,12 @@ streamlit run xihu_map_app.py
 
 ```env
 DEEPSEEK_API_KEY=你的真实密钥
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-flash
+DEEPSEEK_TIMEOUT=120
 ```
 
-保存后启动或重启项目即可。无需复制模板，也无需填写地址、模型和超时。
+保存后启动或重启项目即可。只保留一份 `.env`，地址、模型和超时已填好，直接填写密钥即可。
 程序默认使用 `https://api.deepseek.com`、`deepseek-flash`，读取超时 120 秒。
 密钥申请：https://platform.deepseek.com/api_keys
 未填密钥时会明确提示并使用本地文化资料。不要把填有真实密钥的文件上传到 GitHub。
