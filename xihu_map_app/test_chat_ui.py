@@ -37,6 +37,9 @@ class ChatUITests(unittest.TestCase):
                 self.assertFalse(app.exception)
                 self.assertEqual(app.session_state["chat_messages"]["苏堤"][-1]["content"], "模拟在线回复")
                 self.assertIn("苏堤诗词", post.call_args.kwargs["json"]["messages"][-1]["content"])
+                self.assertEqual(post.call_args.args[0], "https://api.deepseek.com/chat/completions")
+                self.assertEqual(post.call_args.kwargs["json"]["model"], "deepseek-flash")
+                self.assertEqual(post.call_args.kwargs["timeout"], (10, 120))
 
             with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "sk-test-secret"}), patch("chat_api.requests.post") as post:
                 response.status_code = 401
